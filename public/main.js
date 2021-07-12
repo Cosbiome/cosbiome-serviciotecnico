@@ -14,6 +14,7 @@ function createWindow() {
       nodeIntegration: true,
       enableRemoteModule: true,
     },
+    icon: path.join(__dirname, "../src/assets/cosbiome.ico"),
   });
 
   win.loadURL(

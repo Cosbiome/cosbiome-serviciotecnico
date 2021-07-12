@@ -207,7 +207,7 @@ const ReporteDiasReparacion = () => {
             <Card>
               <Meta
                 title="TOTAL DE DINDERO RECAUDADO"
-                description={dataGeneral.totalDinero.toString()}
+                description={dataGeneral.totalDinero + "$"}
               />
             </Card>
           </div>
