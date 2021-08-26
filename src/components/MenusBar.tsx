@@ -29,7 +29,7 @@ const MenusBar = ({ setCollapsed, collapsed, online }: any) => {
   //   setCollapsed(!collapsed);
   // };
 
-  const { ar, ad, av } = usePersm();
+  const { ar, ad } = usePersm();
   const history = useHistory();
 
   return (
@@ -106,7 +106,6 @@ const MenusBar = ({ setCollapsed, collapsed, online }: any) => {
           title="MAQUINAS"
         >
           <Menu.Item
-            hidden={av}
             style={{ fontSize: 14 }}
             key="sub1envases1"
             icon={<Build style={{ fontSize: 20 }} />}

@@ -55,7 +55,9 @@ const ReporteDiasReparacion = () => {
   const handleReportForDataBase = async () => {
     let startF = moment(fechas.startDate).format("YY-MM-DD");
     let endF = moment(fechas.endDate).format("YY-MM-DD");
-    let dataMaquinasDB: IDataMaquinas[] = await (await conn).query(`
+    let dataMaquinasDB: IDataMaquinas[] = await (
+      await conn
+    ).query(`
       select 
         ReparacionId,
         ReparacionMetodoPago,
@@ -74,7 +76,9 @@ const ReporteDiasReparacion = () => {
       where ReparacionFecha >= '${startF}' and ReparacionEntrega <= '${endF}'
       group by ReparacionId;
     `);
-    let dataGeneralDB: IDataGeneral[] = await (await conn).query(`
+    let dataGeneralDB: IDataGeneral[] = await (
+      await conn
+    ).query(`
       select 
         count(*) AS cantidad,
         AVG(TO_DAYS(ReparacionEntrega) - TO_DAYS(ReparacionFecha)) as totalDias,
@@ -171,7 +175,7 @@ const ReporteDiasReparacion = () => {
       <Title className="text-center">REPORTE DE DIAS EN REPARACIONES</Title>
 
       <div className="row mt-5">
-        <div className="col-md-4 offset-md-3">
+        <div style={{ zIndex: 3 }} className="col-md-4 offset-md-3">
           <DateRangeInput
             onDatesChange={(e) => {
               setFocusInput(e.focusedInput);
@@ -207,7 +211,7 @@ const ReporteDiasReparacion = () => {
             <Card>
               <Meta
                 title="TOTAL DE DINDERO RECAUDADO"
-                description={dataGeneral.totalDinero + "$"}
+                description={dataGeneral.totalDinero.toString()}
               />
             </Card>
           </div>

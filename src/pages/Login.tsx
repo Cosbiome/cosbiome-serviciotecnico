@@ -54,7 +54,7 @@ const Login = () => {
                 { required: true, message: "Ingresa tu usuario por favor" },
               ]}
             >
-              <Input />
+              <Input autoFocus={true} />
             </Form.Item>
 
             <Form.Item

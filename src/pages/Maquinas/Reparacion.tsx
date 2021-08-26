@@ -31,6 +31,7 @@ interface IFormReparacion {
   costoIncial: number;
   motivo: string;
   metodo: string;
+  estatus: string;
 }
 
 const Reparacion = () => {
@@ -69,13 +70,15 @@ const Reparacion = () => {
           ReparacionMAquina,
           ReparacionCostoInicial,
           ReparacionMotivo,
-          ReparacionMetodoPago
+          ReparacionMetodoPago,
+          ReparacionEstatus
         ) values(
           ${values.cliente},
           ${values.maquina},
           ${values.costoIncial},
           '${values.motivo}',
-          '${values.metodo}'
+          '${values.metodo}',
+          '${values.estatus}'
         );
       `);
 
@@ -365,16 +368,19 @@ const Reparacion = () => {
             </Form.Item>
 
             <Form.Item
-              label="MAQUINA"
-              name="maquina"
+              label="ESTATUS"
+              name="estatus"
               rules={[
                 {
                   required: true,
-                  message: "Es necesario agregar la maquina a asignar",
+                  message: "Es necesario agregar el estatus de reparacion",
                 },
               ]}
             >
-              <AutoComplete onSearch={handleSearchMaquina} options={optionsM} />
+              <Select>
+                <Select.Option value="REPARACION">REPARACION</Select.Option>
+                <Select.Option value="MANTENIMIENTO">MANTENIMIENTO</Select.Option>
+              </Select>
             </Form.Item>
 
             <Form.Item
@@ -419,7 +425,7 @@ const Reparacion = () => {
 
             <Form.Item>
               <Button type="primary" htmlType="submit">
-                ASIGNAR MAQUINA
+                ASIGNAR REPARACION
               </Button>
             </Form.Item>
           </Form>
