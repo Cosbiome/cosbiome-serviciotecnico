@@ -32,6 +32,7 @@ export interface IMaquinasPorLote {
   ClienteTelefono: string;
   ClienteEstado: string;
   MaquinaIdLote: number;
+  MaquinaRevisada: number;
 }
 
 export interface IMaqNombres {

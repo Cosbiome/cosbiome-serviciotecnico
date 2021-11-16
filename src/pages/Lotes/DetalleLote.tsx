@@ -5,7 +5,7 @@ import { IFormAddMaqLote, IMaqNombres, IMaquinasPorLote } from "../../@types";
 import useFiltersTables from "../../hooks/useFiltersTables";
 import { useEffect, useState } from "react";
 import { connection as conn } from "../../lib/DataBase";
-import { Button, Form, Input, Select, Space } from "antd";
+import { Button, Form, Input, Select, Space, Switch } from "antd";
 import { Pie } from "@ant-design/charts";
 import { Add, Minimize } from "@material-ui/icons";
 const { Option } = Select;
@@ -17,6 +17,7 @@ const DetalleLote = () => {
   >([]);
   const [namesMaqsm, setNamesMaqs] = useState<IMaqNombres[]>([]);
   const [sutrido, setSurtido] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const dropMenuFilter = useFiltersTables();
   const history = useHistory();
@@ -30,7 +31,9 @@ const DetalleLote = () => {
   }, []);
 
   const handleGetNamesMaq = async () => {
-    const maqs: IMaqNombres[] = await (await conn).query(`
+    const maqs: IMaqNombres[] = await (
+      await conn
+    ).query(`
 
       SELECT * FROM maquinasnombres;
 
@@ -41,7 +44,9 @@ const DetalleLote = () => {
 
   const handleGetMaquinasRequisicion = async () => {
     try {
-      const result: IMaquinasPorLote[] = await (await conn).query(`
+      const result: IMaquinasPorLote[] = await (
+        await conn
+      ).query(`
         SELECT                 
             MaquinaId,
             MaquinaReparacion,
@@ -52,7 +57,8 @@ const DetalleLote = () => {
             ClienteTelefono,
             ClienteEstado,
             MaquinaIdLote,
-            LoteId
+            LoteId,
+            MaquinaRevisada
         FROM maquinas 
         INNER JOIN clientes ON ClienteId = MaquinaCliente
         INNER JOIN lotes ON LoteId = MaquinaLote
@@ -74,7 +80,9 @@ const DetalleLote = () => {
         GROUP BY MaqNombre;
       `);
 
-      const surt = await (await conn).query(`
+      const surt = await (
+        await conn
+      ).query(`
         select LoteSurtido from lotes 
         where LoteId = ${params.id};
       `);
@@ -90,7 +98,9 @@ const DetalleLote = () => {
     try {
       values.maquinas.forEach(async (a) => {
         for (let i = 0; i < parseInt(a.cantidad); i++) {
-          await (await conn).query(`
+          await (
+            await conn
+          ).query(`
             INSERT INTO maquinas (
                 MaquinaNombre,
                 MaquinaDescripcion,
@@ -109,7 +119,9 @@ const DetalleLote = () => {
       });
 
       setTimeout(async () => {
-        await (await conn).query(`
+        await (
+          await conn
+        ).query(`
           UPDATE lotes SET LoteSurtido = true 
           WHERE LoteId = ${params.id};
         `);
@@ -156,6 +168,46 @@ const DetalleLote = () => {
       dataIndex: "MaquinaReparacion",
       render: (value: number) => {
         return value === 1 ? "Si" : "No";
+      },
+    },
+    {
+      title: "Revisada",
+      key: "MaquinaRevisada",
+      dataIndex: "MaquinaRevisada",
+      render: (text: any, record) => {
+        return (
+          <Switch
+            disabled={isLoading}
+            checked={record.MaquinaRevisada === 0 ? false : true}
+            onChange={() => {
+              setIsLoading(true);
+              if (record.MaquinaRevisada === 0) {
+                (async () => {
+                  await (
+                    await conn
+                  ).query(`
+                  UPDATE maquinas SET MaquinaRevisada = 1 
+                  WHERE MaquinaId = ${record.MaquinaId};
+                `);
+
+                  setIsLoading(false);
+                  handleGetMaquinasRequisicion();
+                })();
+              } else {
+                (async () => {
+                  await (
+                    await conn
+                  ).query(`
+                  UPDATE maquinas SET MaquinaRevisada = 0 
+                  WHERE MaquinaId = ${record.MaquinaId};
+                `);
+                  setIsLoading(false);
+                  handleGetMaquinasRequisicion();
+                })();
+              }
+            }}
+          />
+        );
       },
     },
     {
