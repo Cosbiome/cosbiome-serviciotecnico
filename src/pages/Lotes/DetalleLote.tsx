@@ -11,11 +11,12 @@ import { Add, Minimize } from "@material-ui/icons";
 import _ from "lodash";
 import Swal from "sweetalert2";
 import { remote } from "electron";
-import fs from "fs";
-import ESCPOSLabelPrinter from "../../lib/brother-ql-810w";
+import { join } from "path";
+import { PosPrintData, PosPrintOptions } from "electron-pos-printer";
+
+const { PosPrinter } = remote.require("electron-pos-printer");
 const { Option } = Select;
-// const printer = remote.require("printer");
-const printer = remote.require("@thiagoelg/node-printer");
+
 
 interface IOptionsAuto {
   label: string;
@@ -32,6 +33,8 @@ const DetalleLote = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [optionsStikers, setOptionsStikers] = useState<IOptionsAuto[]>([]);
   const [maquinaStikerSelect, setMaquinaStikerSelect] = useState<string>("");
+  const [conetoStikers , setConetoStikers] = useState<number>(0);
+  const [conetoStikersTotal , setConetoStikersTotal] = useState<number>(0);
 
   const dropMenuFilter = useFiltersTables();
   const history = useHistory();
@@ -177,9 +180,12 @@ const DetalleLote = () => {
   };
 
   const handleGenStikersPrint = async () => {
+    setIsLoading(true);
     const maquinasName = maquinas.filter(
       (maquina) => maquina.MaqNombre === maquinaStikerSelect
     );
+
+    setConetoStikersTotal(maquinasName.length);
 
     if (maquinasName.length === 0 || maquinaStikerSelect === "") {
       await Swal.fire("Error", "No se encontraron maquinas", "error");
@@ -187,44 +193,64 @@ const DetalleLote = () => {
       return 0;
     }
 
-    console.log(printer.getPrinters()[1]);
+    for ( const maquina of maquinasName) {
+      setConetoStikers((value) => {
+        return value + 1;
+      });
+      const dataCliente: PosPrintData[] = [
+        {
+          type: "text",
+          value: "======",
+          style: `text-align:center;`,
+          css: { "font-weight": "700", "font-size": "18px" },
+        },
+        {
+          type: "text",
+          value: maquina.MaqNombre,
+          style: `text-align:center;`,
+          css: { "font-weight": "700", "font-size": "14px" },
+        },
+        {
+          type: "barCode",
+          value: maquina.MaquinaId,
+          position: "center",
+          style: `text-align:center;`,
+          width: "2px",
+          height: "45px",
+        },
+        {
+          type: "text",
+          value: `*${maquina.MaquinaId}M*`, 
+          style: `text-align:center;`,
+          css: { "font-weight": "700", "font-size": "12px" },
+        },
+        {
+          type: "text",
+          value: `Cosbiome\n01/22 L:${params.id}`, 
+          style: `text-align:center;`,
+          css: { "font-weight": "700", "font-size": "18px" },
+        },
+      ]
+  
+      const options: PosPrintOptions = {
+        preview: false, // Preview in window or print
+        width: "300px", //  width of content body
+        margin: "0 0 0 0", // margin of content body
+        copies: 1, // Number of copies to print
+        printerName: "Brother QL-810W", // printerName: string, check with webContent.getPrinters()
+        timeOutPerLine: 400,
+        pageSize: { height:  39000, width: 62000 }, // page size
+        silent: true,
+      };
+  
+      await PosPrinter.print(dataCliente, options);
+    }
 
-    const instance = new ESCPOSLabelPrinter();
-
-    instance.setESCPMode();
-    instance.initialize();
-    instance.setLength(200);
-    instance.setFont(ESCPOSLabelPrinter.Font.LetterGothic);
-    instance.setBold();
-    instance.setSize(80);
-    // instance.setLandscape(false)
-    // instance.setBold()
-    instance.setAlignment(ESCPOSLabelPrinter.Alignment.CENTER);
-    instance.addText("At your side\n");
-    instance.code39("846497445");
-    // instance.clearCutAfterPrint()
-    instance.print();
-    console.log(printer);
-
-    // printer.printDirect({
-    //   data: Buffer.from(instance.encode()),
-    //   printer: "etiquetas",
-    //   success: function (jobID: any) {
-    //     console.log("sent to printer with ID: " + jobID);
-    //   },
-    //   error: function (err: any) {
-    //     console.log(err);
-    //   },
-    // });
-
-    fs.appendFileSync("/dev/usb/lp0", Buffer.from(instance.encode()));
-
-    // await printer.printDirect({
-    //   // data: Buffer.from(instance.encode()),
-    //   data: "dasdasdas",
-    //   printer: printer.getPrinters()[1].name,
-    //   type: "TEXT",
-    // });
+    
+    setIsLoading(false);
+    setConetoStikers(0);
+    setConetoStikersTotal(0);
+    
   };
 
   const columns: ColumnsType<IMaquinasPorLote> = [
@@ -426,8 +452,8 @@ const DetalleLote = () => {
           />
         </div>
         <div className="col-md-12 mt-3">
-          <Button onClick={handleGenStikersPrint} type="primary">
-            IMRPIMIR ETIQUETAS DE SERIE
+          <Button disabled={isLoading} onClick={handleGenStikersPrint} type="primary">
+            {isLoading ? `${conetoStikers}/${conetoStikersTotal}` : "IMRPIMIR ETIQUETAS DE SERIE"}
           </Button>
         </div>
       </div>
