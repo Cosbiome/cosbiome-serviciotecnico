@@ -39,7 +39,9 @@ const AsignarCliente = () => {
 
   const onFinish = async (values: IAsignacionMaquina) => {
     try {
-      await (await conn).query(`
+      await (
+        await conn
+      ).query(`
         UPDATE maquinas SET 
           MaquinaCliente = ${values.cliente},
           MaquinaEntrega = '${moment().format("YY-MM-DD")}',
@@ -67,7 +69,9 @@ const AsignarCliente = () => {
   };
 
   const handleGetClientesMaquinas = async () => {
-    const clientesDB: ClienteBasicModel[] = await (await conn).query(`
+    const clientesDB: ClienteBasicModel[] = await (
+      await conn
+    ).query(`
         SELECT
             ClienteId,
             ClienteNombre
@@ -76,7 +80,9 @@ const AsignarCliente = () => {
         ORDER BY ClienteNombre;
     `);
 
-    const maquinasDB: MaquinaBasicModel[] = await (await conn).query(`
+    const maquinasDB: MaquinaBasicModel[] = await (
+      await conn
+    ).query(`
         select
             MaquinaId,
             MaqNombre

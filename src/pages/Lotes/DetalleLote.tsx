@@ -5,10 +5,22 @@ import { IFormAddMaqLote, IMaqNombres, IMaquinasPorLote } from "../../@types";
 import useFiltersTables from "../../hooks/useFiltersTables";
 import { useEffect, useState } from "react";
 import { connection as conn } from "../../lib/DataBase";
-import { Button, Form, Input, Select, Space, Switch } from "antd";
+import { AutoComplete, Button, Form, Input, Select, Space, Switch } from "antd";
 import { Pie } from "@ant-design/charts";
 import { Add, Minimize } from "@material-ui/icons";
+import _ from "lodash";
+import Swal from "sweetalert2";
+import { remote } from "electron";
+import fs from "fs";
+import ESCPOSLabelPrinter from "../../lib/brother-ql-810w";
 const { Option } = Select;
+// const printer = remote.require("printer");
+const printer = remote.require("@thiagoelg/node-printer");
+
+interface IOptionsAuto {
+  label: string;
+  value: string;
+}
 
 const DetalleLote = () => {
   const [maquinas, setMaquinas] = useState<IMaquinasPorLote[]>([]);
@@ -18,6 +30,8 @@ const DetalleLote = () => {
   const [namesMaqsm, setNamesMaqs] = useState<IMaqNombres[]>([]);
   const [sutrido, setSurtido] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [optionsStikers, setOptionsStikers] = useState<IOptionsAuto[]>([]);
+  const [maquinaStikerSelect, setMaquinaStikerSelect] = useState<string>("");
 
   const dropMenuFilter = useFiltersTables();
   const history = useHistory();
@@ -87,10 +101,18 @@ const DetalleLote = () => {
         where LoteId = ${params.id};
       `);
 
+      const optionsMaquinas: IOptionsAuto[] = result.map<IOptionsAuto>(
+        (maquina) => ({
+          label: maquina.MaqNombre,
+          value: maquina.MaqNombre,
+        })
+      );
+
       setSurtido(surt[0].LoteSurtido === 1 ? true : false);
 
       setMaquinas(result);
       setConteos(resultCharts);
+      setOptionsStikers(optionsMaquinas);
     } catch (error) {}
   };
 
@@ -130,6 +152,79 @@ const DetalleLote = () => {
         form.resetFields();
       }, 2000);
     } catch (error) {}
+  };
+
+  const handleSearchCliente = (searchText: string) => {
+    setOptionsStikers(
+      !searchText
+        ? maquinas.map((a) => {
+            return {
+              label: a.MaqNombre,
+              value: a.MaqNombre,
+            };
+          })
+        : maquinas
+            .filter((a) =>
+              a.ClienteNombre.toLowerCase().trim().includes(searchText)
+            )
+            .map((a) => {
+              return {
+                label: a.MaqNombre,
+                value: a.MaqNombre,
+              };
+            })
+    );
+  };
+
+  const handleGenStikersPrint = async () => {
+    const maquinasName = maquinas.filter(
+      (maquina) => maquina.MaqNombre === maquinaStikerSelect
+    );
+
+    if (maquinasName.length === 0 || maquinaStikerSelect === "") {
+      await Swal.fire("Error", "No se encontraron maquinas", "error");
+
+      return 0;
+    }
+
+    console.log(printer.getPrinters()[1]);
+
+    const instance = new ESCPOSLabelPrinter();
+
+    instance.setESCPMode();
+    instance.initialize();
+    instance.setLength(200);
+    instance.setFont(ESCPOSLabelPrinter.Font.LetterGothic);
+    instance.setBold();
+    instance.setSize(80);
+    // instance.setLandscape(false)
+    // instance.setBold()
+    instance.setAlignment(ESCPOSLabelPrinter.Alignment.CENTER);
+    instance.addText("At your side\n");
+    instance.code39("846497445");
+    // instance.clearCutAfterPrint()
+    instance.print();
+    console.log(printer);
+
+    // printer.printDirect({
+    //   data: Buffer.from(instance.encode()),
+    //   printer: "etiquetas",
+    //   success: function (jobID: any) {
+    //     console.log("sent to printer with ID: " + jobID);
+    //   },
+    //   error: function (err: any) {
+    //     console.log(err);
+    //   },
+    // });
+
+    fs.appendFileSync("/dev/usb/lp0", Buffer.from(instance.encode()));
+
+    // await printer.printDirect({
+    //   // data: Buffer.from(instance.encode()),
+    //   data: "dasdasdas",
+    //   printer: printer.getPrinters()[1].name,
+    //   type: "TEXT",
+    // });
   };
 
   const columns: ColumnsType<IMaquinasPorLote> = [
@@ -316,6 +411,24 @@ const DetalleLote = () => {
               </Button>
             </Form.Item>
           </Form>
+        </div>
+      </div>
+
+      <div className="row mt-5">
+        <div className="col-md-12">
+          <AutoComplete
+            style={{ width: "100%" }}
+            onSearch={handleSearchCliente}
+            options={_.uniqBy(optionsStikers, "label")}
+            onChange={(value) => {
+              setMaquinaStikerSelect(value);
+            }}
+          />
+        </div>
+        <div className="col-md-12 mt-3">
+          <Button onClick={handleGenStikersPrint} type="primary">
+            IMRPIMIR ETIQUETAS DE SERIE
+          </Button>
         </div>
       </div>
 
