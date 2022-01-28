@@ -46,9 +46,11 @@ const ScannerMaquina = () => {
 
   const handleScanMaqForBarCode = async (values: { resultScan: string }) => {
     try {
-      const maquinaDB: IDetalleMaquina[] = await (await conn).query(`
+      const maquinaDB: IDetalleMaquina[] = await (
+        await conn
+      ).query(`
         select
-          MaquinaId,
+          maquinas.id as MaquinaId,
           MaqNombre,
           MaquinaLote,
           ClienteNombre,
@@ -57,14 +59,16 @@ const ScannerMaquina = () => {
           ClienteTelefono,
           MaquinaGarantia
         from maquinas
-        inner join maquinasnombres on MaquinaNombre = MaqId 
-        inner join clientes on ClienteId = MaquinaCliente
-        where MaquinaId = ${values.resultScan};
+        inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
+        inner join  ${"`users-permissions_user`"} as user on user.id = MaquinaCliente
+        where maquinas.id = ${values.resultScan};
       `);
 
-      const reparacionesDB: IReparacionesDB[] = await (await conn).query(`
+      const reparacionesDB: IReparacionesDB[] = await (
+        await conn
+      ).query(`
         select 
-          ReparacionId,
+          reparaciones.id as ReparacionId,
           ReparacionFecha,
           ReparacionMotivo,
           ReparacionEntrega,

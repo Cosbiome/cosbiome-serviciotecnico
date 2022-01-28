@@ -20,19 +20,21 @@ const Clientes = () => {
   const history = useHistory();
 
   const handleGetClientes = async () => {
-    const result: IClientesDB[] = await (await conn).query(`
+    const result: IClientesDB[] = await (
+      await conn
+    ).query(`
       SELECT 
         ClienteNombre,
         ClienteDireccion,
         ClienteEstado,
         ClienteTelefono,
-        ClienteId,
-        ClienteCreacion,
+        user.id as ClienteId,
+        user.created_at as ClienteFechaCreacion,
         COUNT( CASE WHEN MaquinaCliente IS NOT NULL THEN 1 ELSE NULL END) AS 'ClienteTotalMaquinas'
-      FROM  clientes
-      LEFT JOIN maquinas ON ClienteId = MaquinaCliente
+      FROM  ${"`users-permissions_user`"} as user
+      LEFT JOIN maquinas ON user.id = MaquinaCliente
       GROUP BY ClienteNombre
-      ORDER BY ClienteId;
+      ORDER BY user.id;
     `);
 
     console.log(result);

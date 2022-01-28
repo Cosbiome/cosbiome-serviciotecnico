@@ -4,6 +4,7 @@ import { connection as conn } from "../../lib/DataBase";
 import { remote } from "electron";
 import { useEffect, useState } from "react";
 import moment from "moment";
+import useHttp from "../../hooks/useHttp";
 
 interface IOptionsAuto {
   label: string;
@@ -32,6 +33,7 @@ const AsignarCliente = () => {
   const [optionsM, setOptionsM] = useState<IOptionsAuto[]>([]);
 
   const [form] = Form.useForm();
+  const { update } = useHttp();
 
   useEffect(() => {
     handleGetClientesMaquinas();
@@ -46,7 +48,7 @@ const AsignarCliente = () => {
           MaquinaCliente = ${values.cliente},
           MaquinaEntrega = '${moment().format("YY-MM-DD")}',
           MaquinaGarantia = '${moment(values.garantia).format("YY-MM-DD")}'
-        WHERE MaquinaId = ${values.maquina};
+        WHERE maquinas.id = ${values.maquina};
       `);
 
       new remote.Notification({
@@ -73,10 +75,10 @@ const AsignarCliente = () => {
       await conn
     ).query(`
         SELECT
-            ClienteId,
+            user.id as ClienteId,
             ClienteNombre
-        FROM clientes
-        WHERE ClienteId != 1
+        FROM  ${"`users-permissions_user`"} as user
+        WHERE  user.id != 1
         ORDER BY ClienteNombre;
     `);
 
@@ -84,12 +86,12 @@ const AsignarCliente = () => {
       await conn
     ).query(`
         select
-            MaquinaId,
+            maquinas.id as MaquinaId,
             MaqNombre
         from maquinas
-        inner join clientes on ClienteId = MaquinaCLiente
-        inner join maquinasnombres on MaquinaNombre = MaqId
-        where ClienteId = 1
+        inner join ${"`users-permissions_user`"} as user on user.id = MaquinaCLiente
+        inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
+        where user.id = 1
         order by MaqNombre;
     `);
 

@@ -3,26 +3,35 @@ import { Form, Input, Button } from "antd";
 import { ILoteCreacion } from "../../@types";
 import { connection as conn } from "../../lib/DataBase";
 import { remote } from "electron";
+import useHttp from "../../hooks/useHttp";
 
 const CrearLotes = () => {
   const [form] = Form.useForm();
+  const { post } = useHttp();
+
   const onFinish = async (values: ILoteCreacion) => {
     try {
-      const result = await (await conn).query(`
-        INSERT INTO lotes (
-          LoteFecha, 
-          LoteDescripcion,
-          LoteConfirmacion
-        ) VALUES (
-          '${values.fecha}',
-          '${values.descripcion}',
-          'Pablo Rizo'
-        );
-      `);
+      // const result = await (await conn).query(`
+      //   INSERT INTO lotes (
+      //     LoteFecha,
+      //     LoteDescripcion,
+      //     LoteConfirmacion
+      //   ) VALUES (
+      //     '${values.fecha}',
+      //     '${values.descripcion}',
+      //     'Pablo Rizo'
+      //   );
+      // `);
+
+      const result = await post("lotes", {
+        LoteFecha: new Date(values.fecha).toISOString(),
+        LoteDescripcion: values.descripcion,
+        LoteConfirmacion: "Pablo Rizo",
+      });
 
       new remote.Notification({
         title: "LOTE DE MAQUINAS CREADO EXITOSA MENTE",
-        body: `NUMERO DE LOTE: ${result.insertId}`,
+        body: `NUMERO DE LOTE: ${result.id}`,
       }).show();
 
       form.resetFields();

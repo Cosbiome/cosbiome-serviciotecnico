@@ -13,10 +13,10 @@ import Swal from "sweetalert2";
 import { remote } from "electron";
 import { join } from "path";
 import { PosPrintData, PosPrintOptions } from "electron-pos-printer";
+import useHttp from "../../hooks/useHttp";
 
 const { PosPrinter } = remote.require("electron-pos-printer");
 const { Option } = Select;
-
 
 interface IOptionsAuto {
   label: string;
@@ -33,13 +33,14 @@ const DetalleLote = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [optionsStikers, setOptionsStikers] = useState<IOptionsAuto[]>([]);
   const [maquinaStikerSelect, setMaquinaStikerSelect] = useState<string>("");
-  const [conetoStikers , setConetoStikers] = useState<number>(0);
-  const [conetoStikersTotal , setConetoStikersTotal] = useState<number>(0);
+  const [conetoStikers, setConetoStikers] = useState<number>(0);
+  const [conetoStikersTotal, setConetoStikersTotal] = useState<number>(0);
 
   const dropMenuFilter = useFiltersTables();
   const history = useHistory();
   const params = useParams<{ id: string }>();
   const [form] = Form.useForm();
+  const { post, update } = useHttp();
 
   useEffect(() => {
     handleGetMaquinasRequisicion();
@@ -52,7 +53,11 @@ const DetalleLote = () => {
       await conn
     ).query(`
 
-      SELECT * FROM maquinasnombres;
+      SELECT
+      id as MaqId,
+      MaqNombre,
+      MaqClasificacion
+      FROM maquinasnombres;
 
     `);
 
@@ -65,7 +70,7 @@ const DetalleLote = () => {
         await conn
       ).query(`
         SELECT                 
-            MaquinaId,
+            maquinas.id as MaquinaId,
             MaquinaReparacion,
             MaqNombre,
             ClienteNombre,
@@ -74,13 +79,13 @@ const DetalleLote = () => {
             ClienteTelefono,
             ClienteEstado,
             MaquinaIdLote,
-            LoteId,
+            lotes.id as LoteId,
             MaquinaRevisada
         FROM maquinas 
-        INNER JOIN clientes ON ClienteId = MaquinaCliente
-        INNER JOIN lotes ON LoteId = MaquinaLote
-        INNER JOIN maquinasnombres ON MaqId = MaquinaNombre
-        WHERE LoteId = ${params.id}
+        INNER JOIN ${"`users-permissions_user`"} as user ON user.id = MaquinaCliente
+        INNER JOIN lotes ON lotes.id = MaquinaLote
+        INNER JOIN maquinasnombres ON maquinasnombres.id = MaquinaNombre
+        WHERE lotes.id = ${params.id}
         ORDER BY MaqNombre ASC;
       `);
 
@@ -91,9 +96,9 @@ const DetalleLote = () => {
           MaqNombre,
           COUNT(*) AS 'TOTAL'
         FROM maquinas
-        INNER JOIN lotes ON LoteId = MaquinaLote
-        INNER JOIN maquinasnombres ON MaquinaNombre = MaqId
-        WHERE LoteId = ${params.id}
+        INNER JOIN lotes ON lotes.id = MaquinaLote
+        INNER JOIN maquinasnombres ON MaquinaNombre = maquinasnombres.id
+        WHERE lotes.id = ${params.id}
         GROUP BY MaqNombre;
       `);
 
@@ -101,7 +106,7 @@ const DetalleLote = () => {
         await conn
       ).query(`
         select LoteSurtido from lotes 
-        where LoteId = ${params.id};
+        where id = ${params.id};
       `);
 
       const optionsMaquinas: IOptionsAuto[] = result.map<IOptionsAuto>(
@@ -111,45 +116,72 @@ const DetalleLote = () => {
         })
       );
 
+      console.log(surt[0].LoteSurtido);
+
+      console.log(`
+      select LoteSurtido from lotes 
+      where id = ${params.id};
+    `);
+
       setSurtido(surt[0].LoteSurtido === 1 ? true : false);
 
       setMaquinas(result);
       setConteos(resultCharts);
       setOptionsStikers(optionsMaquinas);
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const onFinish = async (values: IFormAddMaqLote) => {
     try {
       values.maquinas.forEach(async (a) => {
         for (let i = 0; i < parseInt(a.cantidad); i++) {
-          await (
-            await conn
-          ).query(`
-            INSERT INTO maquinas (
-                MaquinaNombre,
-                MaquinaDescripcion,
-                MaquinaLote,
-                MaquinaCliente,
-                MaquinaIdLote
-            ) VALUES(
-                ${a.nombre},
-                'LLEGO EN BUEN ESTADO',
-                ${params.id},
-                1,
-                ${i + 1}
-            );
-          `);
+          // await (
+          //   await conn
+          // ).query(`
+          //   INSERT INTO maquinas (
+          //       MaquinaNombre,
+          //       MaquinaDescripcion,
+          //       MaquinaLote,
+          //       MaquinaCliente,
+          //       MaquinaIdLote
+          //   ) VALUES(
+          //       ${a.nombre},
+          //       'LLEGO EN BUEN ESTADO',
+          //       ${params.id},
+          //       1,
+          //       ${i + 1}
+          //   );
+          // `);
+
+          await post("maquinas", {
+            MaquinaDescripcion: "LLEGO EN BUEN ESTADO",
+            MaquinaNombre: a.nombre,
+            MaquinaLote: params.id,
+            MaquinaCliente: 1,
+            MaquinaIdLote: (i + 1).toString(),
+            MaquinaEntrega: new Date().toISOString(),
+            MaquinaEntradaReparacion: new Date().toISOString(),
+            MaquinaGarantia: new Date().toISOString(),
+            MaquinaEntregaReparacion: new Date().toISOString(),
+            MaquinaRevisada: false,
+            MaquinaReparacion: false,
+          });
         }
       });
 
       setTimeout(async () => {
-        await (
-          await conn
-        ).query(`
-          UPDATE lotes SET LoteSurtido = true 
-          WHERE LoteId = ${params.id};
-        `);
+        // await (
+        //   await conn
+        // ).query(`
+        //   UPDATE lotes SET LoteSurtido = true
+        //   WHERE lotes.id = ${params.id};
+        // `);
+
+        await update(`lotes/${params.id}`, {
+          LoteSurtido: true,
+        });
 
         handleGetMaquinasRequisicion();
         form.resetFields();
@@ -193,7 +225,7 @@ const DetalleLote = () => {
       return 0;
     }
 
-    for ( const maquina of maquinasName) {
+    for (const maquina of maquinasName) {
       setConetoStikers((value) => {
         return value + 1;
       });
@@ -220,18 +252,18 @@ const DetalleLote = () => {
         },
         {
           type: "text",
-          value: `*${maquina.MaquinaId}M*`, 
+          value: `*${maquina.MaquinaId}M*`,
           style: `text-align:center;`,
           css: { "font-weight": "700", "font-size": "12px" },
         },
         {
           type: "text",
-          value: `Cosbiome\n01/22 L:${params.id}`, 
+          value: `Cosbiome\n01/22 L:${params.id}`,
           style: `text-align:center;`,
           css: { "font-weight": "700", "font-size": "18px" },
         },
-      ]
-  
+      ];
+
       const options: PosPrintOptions = {
         preview: false, // Preview in window or print
         width: "300px", //  width of content body
@@ -239,18 +271,16 @@ const DetalleLote = () => {
         copies: 1, // Number of copies to print
         printerName: "Brother QL-810W", // printerName: string, check with webContent.getPrinters()
         timeOutPerLine: 400,
-        pageSize: { height:  39000, width: 62000 }, // page size
+        pageSize: { height: 39000, width: 62000 }, // page size
         silent: true,
       };
-  
+
       await PosPrinter.print(dataCliente, options);
     }
 
-    
     setIsLoading(false);
     setConetoStikers(0);
     setConetoStikersTotal(0);
-    
   };
 
   const columns: ColumnsType<IMaquinasPorLote> = [
@@ -308,7 +338,7 @@ const DetalleLote = () => {
                     await conn
                   ).query(`
                   UPDATE maquinas SET MaquinaRevisada = 1 
-                  WHERE MaquinaId = ${record.MaquinaId};
+                  WHERE id = ${record.MaquinaId};
                 `);
 
                   setIsLoading(false);
@@ -320,7 +350,7 @@ const DetalleLote = () => {
                     await conn
                   ).query(`
                   UPDATE maquinas SET MaquinaRevisada = 0 
-                  WHERE MaquinaId = ${record.MaquinaId};
+                  WHERE id = ${record.MaquinaId};
                 `);
                   setIsLoading(false);
                   handleGetMaquinasRequisicion();
@@ -432,7 +462,11 @@ const DetalleLote = () => {
               )}
             </Form.List>
             <Form.Item>
-              <Button disabled={sutrido} type="primary" htmlType="submit">
+              <Button
+                disabled={sutrido || isLoading}
+                type="primary"
+                htmlType="submit"
+              >
                 Submit
               </Button>
             </Form.Item>
@@ -452,8 +486,14 @@ const DetalleLote = () => {
           />
         </div>
         <div className="col-md-12 mt-3">
-          <Button disabled={isLoading} onClick={handleGenStikersPrint} type="primary">
-            {isLoading ? `${conetoStikers}/${conetoStikersTotal}` : "IMRPIMIR ETIQUETAS DE SERIE"}
+          <Button
+            disabled={isLoading}
+            onClick={handleGenStikersPrint}
+            type="primary"
+          >
+            {isLoading
+              ? `${conetoStikers}/${conetoStikersTotal}`
+              : "IMRPIMIR ETIQUETAS DE SERIE"}
           </Button>
         </div>
       </div>

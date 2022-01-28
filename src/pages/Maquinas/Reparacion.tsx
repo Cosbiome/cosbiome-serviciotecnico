@@ -7,6 +7,7 @@ import { PosPrintData, PosPrintOptions } from "electron-pos-printer";
 import { join } from "path";
 import moment from "moment";
 import usePersm from "../../hooks/usePersm";
+import useHttp from "../../hooks/useHttp";
 const { PosPrinter } = remote.require("electron-pos-printer");
 
 interface IOptionsAutoC {
@@ -42,6 +43,7 @@ const Reparacion = () => {
   const [optionsM, setOptionsM] = useState<IOptionsAutoC[]>([]);
 
   const [form] = Form.useForm();
+  const { post } = useHttp();
   const { user } = usePersm();
 
   useEffect(() => {
@@ -64,27 +66,45 @@ const Reparacion = () => {
         silent: true,
       };
 
-      const result = await (await conn).query(`
-        insert into reparaciones (
-          ReparacionCliente,
-          ReparacionMAquina,
-          ReparacionCostoInicial,
-          ReparacionMotivo,
-          ReparacionMetodoPago,
-          ReparacionEstatus
-        ) values(
-          ${values.cliente},
-          ${values.maquina},
-          ${values.costoIncial},
-          '${values.motivo}',
-          '${values.metodo}',
-          '${values.estatus}'
-        );
-      `);
+      // const result = await (
+      //   await conn
+      // ).query(`
+      //   insert into reparaciones (
+      //     ReparacionCliente,
+      //     ReparacionMAquina,
+      //     ReparacionCostoInicial,
+      //     ReparacionMotivo,
+      //     ReparacionMetodoPago,
+      //     ReparacionEstatus
+      //   ) values(
+      //     ${values.cliente},
+      //     ${values.maquina},
+      //     ${values.costoIncial},
+      //     '${values.motivo}',
+      //     '${values.metodo}',
+      //     '${values.estatus}'
+      //   );
+      // `);
 
-      await (await conn).query(`
+      const result = await post("reparaciones", {
+        ReparacionFecha: new Date().toISOString(),
+        ReparacionMotivo: values.motivo,
+        ReparacionEntrega: new Date().toISOString(),
+        ReparacionCostoInicial: values.costoIncial,
+        ReparacionCostoTotal: 0,
+        ReparacionCompletada: false,
+        ReparacionMetodoPago: values.metodo,
+        ReparacionDescripcion: "",
+        ReparacionEstatus: values.estatus,
+        ReparacionCliente: values.cliente,
+        ReparacionMaquina: values.maquina,
+      });
+
+      await (
+        await conn
+      ).query(`
         UPDATE maquinas SET MaquinaReparacion = true
-        WHERE MaquinaId = ${values.maquina};
+        WHERE maquinas.id = ${values.maquina};
       `);
 
       const dataCliente: PosPrintData[] = [
@@ -119,7 +139,7 @@ const Reparacion = () => {
         },
         {
           type: "text",
-          value: `TICKET NO. ${result.insertId}`,
+          value: `TICKET NO. ${result.id}`,
           style: `text-align:center; margin-top: 10px`,
         },
         {
@@ -183,7 +203,7 @@ const Reparacion = () => {
         },
         {
           type: "text",
-          value: `TICKET NO. ${result.insertId}`,
+          value: `TICKET NO. ${result.id}`,
           style: `text-align:center; margin-top: 10px`,
         },
         {
@@ -210,7 +230,7 @@ const Reparacion = () => {
 
       new remote.Notification({
         title: "REPARACION AGENDADA EXITOSAMENTE",
-        body: `ID DE REPARACION: ${result.insertId}`,
+        body: `ID DE REPARACION: ${result.id}`,
       }).show();
 
       handleGetClientesMaquinas();
@@ -226,24 +246,28 @@ const Reparacion = () => {
   };
 
   const handleGetClientesMaquinas = async () => {
-    const clientesDB: ClienteBasicModel[] = await (await conn).query(`
+    const clientesDB: ClienteBasicModel[] = await (
+      await conn
+    ).query(`
       SELECT
-          ClienteId,
+          user.id as ClienteId,
           ClienteNombre
-      FROM clientes
-      WHERE ClienteId != 1
+      FROM ${"`users-permissions_user`"} as user
+      WHERE user.id != 1
       ORDER BY ClienteNombre;
     `);
 
-    const maquinasDB: MaquinaBasicModel[] = await (await conn).query(`
+    const maquinasDB: MaquinaBasicModel[] = await (
+      await conn
+    ).query(`
       select
-          MaquinaId,
+          maquinas.id as MaquinaId,
           MaqNombre,
           MaquinaCliente
       from maquinas
-      inner join clientes on ClienteId = MaquinaCLiente
-      inner join maquinasnombres on MaquinaNombre = MaqId
-      where ClienteId != 1 AND MaquinaReparacion = false
+      inner join ${"`users-permissions_user`"} as user on user.id = MaquinaCLiente
+      inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
+      where user.id  != 1 AND MaquinaReparacion = false
       order by MaqNombre;
     `);
 
@@ -379,7 +403,9 @@ const Reparacion = () => {
             >
               <Select>
                 <Select.Option value="REPARACION">REPARACION</Select.Option>
-                <Select.Option value="MANTENIMIENTO">MANTENIMIENTO</Select.Option>
+                <Select.Option value="MANTENIMIENTO">
+                  MANTENIMIENTO
+                </Select.Option>
               </Select>
             </Form.Item>
 

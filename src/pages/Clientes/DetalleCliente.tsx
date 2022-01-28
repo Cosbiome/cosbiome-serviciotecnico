@@ -30,21 +30,26 @@ const DetalleCliente = () => {
   }, []);
 
   const handleGetClientOnDataBase = async () => {
-    const clienteDB: IClientesDB[] = await (await conn).query(`
-      SELECT * FROM clientes WHERE ClienteId = ${params.id}
+    const clienteDB: IClientesDB[] = await (
+      await conn
+    ).query(`
+      SELECT * FROM ${"`users-permissions_user`"} as user WHERE user.id = ${
+      params.id
+    }
     `);
 
-    const maquinasClienteDB: IMaquinasDetalleCLiente[] = await (await conn)
-      .query(`
+    const maquinasClienteDB: IMaquinasDetalleCLiente[] = await (
+      await conn
+    ).query(`
       select
-        MaquinaId,
+        maquinas.id as MaquinaId,
         MaqNombre,
         MaquinaReparacion,
         MaquinaLote
       from maquinas
-      inner join clientes on ClienteId = MaquinaCLiente
-      inner join maquinasnombres on MaquinaNombre = MaqId
-      where ClienteId = ${params.id};
+      inner join ${"`users-permissions_user`"} as user on user.id = MaquinaCLiente
+      inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
+      where user.id = ${params.id};
     `);
 
     setMaquinasClientes(maquinasClienteDB);

@@ -3,22 +3,26 @@ import { Button, Form, Input, Select } from "antd";
 import { connection as conn } from "../../lib/DataBase";
 import { remote } from "electron";
 import { useEffect, useState } from "react";
+import useHttp from "../../hooks/useHttp";
 interface IModeloAdd {
   modelo: string;
-  clas: string;
+  clas: number;
 }
 
 const ModelosAdd = () => {
   const [clasificaciones, setClasificaciones] = useState<any[]>([]);
 
   const [form] = Form.useForm();
+  const { post } = useHttp();
 
   useEffect(() => {
     handleGetClas();
   }, []);
 
   const handleGetClas = async () => {
-    const clasi: any[] = await (await conn).query(`
+    const clasi: any[] = await (
+      await conn
+    ).query(`
 
       select * from clasificacionesmaquinas;
 
@@ -29,19 +33,26 @@ const ModelosAdd = () => {
 
   const onFinish = async (values: IModeloAdd) => {
     try {
-      const result = await (await conn).query(`
-        INSERT INTO maquinasnombres (MaqNombre, MaqClasificacion) VALUES(
-          '${values.modelo}',
-          '${values.clas}'
-        );
-      `);
+      // const result = await (await conn).query(`
+      //   INSERT INTO maquinasnombres (MaqNombre, MaqClasificacion) VALUES(
+      //     '${values.modelo}',
+      //     '${values.clas}'
+      //   );
+      // `);
+
+      await post("maquinasnombres", {
+        MaqNombre: values.modelo,
+        MaqClasificacion: values.clas,
+      });
 
       new remote.Notification({
         title: "MODELO CREADO EXITOSAMENTE",
-        body: `NUMERO DEL MODELO: ${result.insertId}`,
+        body: `NUMERO DEL MODELO: ${values.modelo}`,
       }).show();
 
       form.resetFields();
+
+      console.log(values);
     } catch (error) {
       new remote.Notification({
         title: "ERROR AL CREAR EL MODELO COMUNICA A SISTEMAS",
@@ -89,9 +100,7 @@ const ModelosAdd = () => {
               <Select>
                 {clasificaciones.map((cl) => {
                   return (
-                    <Select.Option value={cl.ClasNombre}>
-                      {cl.ClasNombre}
-                    </Select.Option>
+                    <Select.Option value={cl.id}>{cl.ClasNombre}</Select.Option>
                   );
                 })}
               </Select>

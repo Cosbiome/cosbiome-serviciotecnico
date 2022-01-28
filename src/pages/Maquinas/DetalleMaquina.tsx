@@ -49,9 +49,11 @@ const DetalleMaquina = () => {
   }, []);
 
   const handleGetUtilsInDataBase = async () => {
-    const maquinaDB: IDetalleMaquina[] = await (await conn).query(`
+    const maquinaDB: IDetalleMaquina[] = await (
+      await conn
+    ).query(`
       select
-	      MaquinaId,
+        maquinas.id as MaquinaId,
 	      MaqNombre,
 	      MaquinaLote,
 	      ClienteNombre,
@@ -60,14 +62,16 @@ const DetalleMaquina = () => {
 	      ClienteTelefono,
         MaquinaGarantia
       from maquinas
-      inner join maquinasnombres on MaquinaNombre = MaqId 
-      inner join clientes on ClienteId = MaquinaCliente
-      where MaquinaId = ${params.id};
+      inner join maquinasnombres on MaquinaNombre = maquinasnombres.id 
+      inner join ${"`users-permissions_user`"} as user on user.id = MaquinaCliente
+      where maquinas.id = ${params.id};
     `);
 
-    const reparacionesDB: IReparacionesDB[] = await (await conn).query(`
+    const reparacionesDB: IReparacionesDB[] = await (
+      await conn
+    ).query(`
       select 
-        ReparacionId,
+        reparaciones.id as ReparacionId,
         ReparacionFecha,
         ReparacionMotivo,
         ReparacionEntrega,

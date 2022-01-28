@@ -2,15 +2,16 @@ import { Form, Input, Button } from "antd";
 import Title from "antd/lib/typography/Title";
 import { remote } from "electron";
 import { useHistory } from "react-router";
-import { http } from "../lib/http";
+import useHttp from "../hooks/useHttp";
 
 const Login = () => {
   const history = useHistory();
   const [form] = Form.useForm();
+  const { login } = useHttp();
 
   const onFinish = async (values: any) => {
     try {
-      let data = await http.login("auth/local", values);
+      let data = await login("auth/local", values);
 
       new remote.Notification({
         title: "BIENVENIDO AL SISTEMA",

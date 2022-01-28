@@ -50,13 +50,13 @@ const MenusBar = ({ setCollapsed, collapsed, online }: any) => {
         <Link to="/maquinas/scanner">ESCANEO DE MAQUINA</Link>
       </Menu.Item>
       <SubMenu
-        disabled={ar}
+        // disabled={ar}
         key="sub0"
         icon={<ShoppingCartOutlined style={{ fontSize: 17 }} />}
         title="LOTES"
       >
         <Menu.Item
-          hidden={ad}
+          // hidden={ar}
           style={{ fontSize: 14 }}
           key="sub00"
           icon={<PostAddOutlined style={{ fontSize: 20 }} />}
@@ -64,6 +64,7 @@ const MenusBar = ({ setCollapsed, collapsed, online }: any) => {
           <Link to="/lotes/crear">NUEVO LOTE</Link>
         </Menu.Item>
         <Menu.Item
+          // hidden={ar}
           style={{ fontSize: 14 }}
           key="sub01"
           icon={<ListAltOutlined style={{ fontSize: 20 }} />}
