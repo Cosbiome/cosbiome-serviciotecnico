@@ -26,17 +26,19 @@ const Maquinas = () => {
   }, []);
 
   const handleGetMaquinas = async () => {
-    const maquinasDB = await (await conn).query(`
+    const maquinasDB = await (
+      await conn
+    ).query(`
         select
-            MaquinaId,
+            maquinas.id as MaquinaId,
             MaqNombre,
             MaquinaReparacion,
             MaquinaLote,
             ClienteNombre,
             ClienteTelefono
         from maquinas
-        inner join clientes on ClienteId = MaquinaCLiente
-        inner join maquinasnombres on MaquinaNombre = MaqId
+        inner join ${"`users-permissions_user`"} as user on user.id = MaquinaCLiente
+        inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
         ORDER BY ClienteNombre;
     `);
 

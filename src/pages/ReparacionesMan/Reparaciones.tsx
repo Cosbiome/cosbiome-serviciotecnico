@@ -29,9 +29,11 @@ const Reparaciones = () => {
   }, []);
 
   const handleGetReparaciones = async () => {
-    const reparacionesDB: IReparacionDB[] = await (await conn).query(`
+    const reparacionesDB: IReparacionDB[] = await (
+      await conn
+    ).query(`
       select
-	      ReparacionId,
+        reparaciones.id as ReparacionId,
         ReparacionFecha,
         ClienteNombre,
         ReparacionMotivo,
@@ -40,9 +42,9 @@ const Reparaciones = () => {
         ClienteTelefono,
         ReparacionCostoInicial
       from reparaciones
-      inner join clientes on ClienteId = ReparacionCliente
-      inner join maquinas on MaquinaId = ReparacionMaquina
-      inner join maquinasnombres on MaquinaNombre = MaqId
+      inner join ${"`users-permissions_user`"} as user on user.id = ReparacionCliente
+      inner join maquinas on maquinas.id = ReparacionMaquina
+      inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
       where ReparacionCompletada = false;
     `);
 

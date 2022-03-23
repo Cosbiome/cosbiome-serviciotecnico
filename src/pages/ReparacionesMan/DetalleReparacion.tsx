@@ -58,9 +58,11 @@ const DetalleReparacion = () => {
   }, []);
 
   const handleGetReparacion = async () => {
-    const reparacionDB: IDetalleReparacion[] = await (await conn).query(`
+    const reparacionDB: IDetalleReparacion[] = await (
+      await conn
+    ).query(`
       select 
-	      ReparacionId,
+        reparaciones.id as ReparacionId,
 	      ReparacionFecha,
 	      ReparacionCostoInicial,
 	      ReparacionCostoTotal,
@@ -68,17 +70,17 @@ const DetalleReparacion = () => {
 	      ClienteNombre,
 	      ClienteDireccion,
 	      ClienteTelefono,
-	      MaquinaId,
+	      maquinas.id as MaquinaId,
 	      MaqNombre,
         ReparacionEntrega,
         ReparacionMetodoPago,
         ReparacionCompletada,
         ReparacionDescripcion
       from reparaciones
-      inner join clientes on ClienteId = ReparacionCliente
-      inner join maquinas on MaquinaId = ReparacionMaquina
-      inner join maquinasnombres on MaquinaNombre = MaqId
-      where ReparacionId = ${params.id};
+      inner join ${"`users-permissions_user`"} as user on user.id = ReparacionCliente
+      inner join maquinas on maquinas.id = ReparacionMaquina
+      inner join maquinasnombres on MaquinaNombre = maquinasnombres.id
+      where reparaciones.id = ${params.id};
     `);
 
     setReparacion(reparacionDB[0]);
@@ -101,7 +103,9 @@ const DetalleReparacion = () => {
         pageSize: { height: 301000, width: 71000 }, // page size
         silent: true,
       };
-      await (await conn).query(`
+      await (
+        await conn
+      ).query(`
         UPDATE reparaciones
         SET
           ReparacionCostoTotal = ${parseInt(values.total)},
@@ -109,11 +113,13 @@ const DetalleReparacion = () => {
           ReparacionDescripcion = '${values.motivo}',
           ReparacionCompletada = true,
           ReparacionCostoInicial = ${values.diagnostico}
-        WHERE ReparacionId = ${params.id};
+        WHERE reparaciones.id = ${params.id};
       `);
-      await (await conn).query(`
+      await (
+        await conn
+      ).query(`
         UPDATE maquinas SET MaquinaReparacion = false
-        WHERE MaquinaId = ${reparacion.MaquinaId};
+        WHERE maquinas.id = ${reparacion.MaquinaId};
       `);
       new remote.Notification({
         title: "REPARACION COMPLETADA",
@@ -247,16 +253,23 @@ const DetalleReparacion = () => {
         diagnostico: number;
       } = form.getFieldsValue();
 
-      await (await conn).query(`
+      await (
+        await conn
+      ).query(`
         UPDATE reparaciones
         SET
           ReparacionCostoTotal = ${parseInt(data.total)},
           ReparacionEntrega = '${moment(data.fecha).format("YY-MM-DD")}',
           ReparacionDescripcion = '${data.motivo}',
           ReparacionCostoInicial = ${data.diagnostico}
-        WHERE ReparacionId = ${params.id};
+        WHERE reparaciones.id = ${params.id};
       `);
-      handleGetReparacion();
+      await handleGetReparacion();
+
+      new remote.Notification({
+        title: "ESTATUS DE REPARACION ACTUALIZADO",
+        body: "ESTATUS DE REPARACION ACTUALIZADO",
+      }).show();
     } catch (error) {
       console.log(error);
     }
